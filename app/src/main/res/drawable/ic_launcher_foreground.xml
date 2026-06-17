@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Adaptive-icon foreground: a minimalist clock face drawn on the 108dp canvas.
+     The visible "safe zone" is the central 72dp, so the artwork is kept near the center. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Outer ring -->
+    <path
+        android:strokeColor="#E6ECF2"
+        android:strokeWidth="3.2"
+        android:fillColor="#00000000"
+        android:pathData="M54,30
+            a24,24 0 1,0 0.01,0 Z" />
+
+    <!-- 12 / 3 / 6 / 9 tick marks -->
+    <path
+        android:strokeColor="#7AA2F7"
+        android:strokeWidth="3"
+        android:strokeLineCap="round"
+        android:pathData="M54,33 L54,37" />
+    <path
+        android:strokeColor="#7AA2F7"
+        android:strokeWidth="3"
+        android:strokeLineCap="round"
+        android:pathData="M75,54 L71,54" />
+    <path
+        android:strokeColor="#7AA2F7"
+        android:strokeWidth="3"
+        android:strokeLineCap="round"
+        android:pathData="M54,75 L54,71" />
+    <path
+        android:strokeColor="#7AA2F7"
+        android:strokeWidth="3"
+        android:strokeLineCap="round"
+        android:pathData="M33,54 L37,54" />
+
+    <!-- Minute hand -->
+    <path
+        android:strokeColor="#E6ECF2"
+        android:strokeWidth="3"
+        android:strokeLineCap="round"
+        android:pathData="M54,54 L54,40" />
+
+    <!-- Hour hand -->
+    <path
+        android:strokeColor="#E6ECF2"
+        android:strokeWidth="3.6"
+        android:strokeLineCap="round"
+        android:pathData="M54,54 L65,60" />
+
+    <!-- Center dot -->
+    <path
+        android:fillColor="#7AA2F7"
+        android:pathData="M54,51 a3,3 0 1,0 0.01,0 Z" />
+</vector>

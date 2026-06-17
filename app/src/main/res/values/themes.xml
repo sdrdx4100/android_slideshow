@@ -1,0 +1,12 @@
+<resources>
+    <!--
+      A minimal platform theme. The real (Material 3) theming is done in Compose
+      (see ui/theme). This XML theme only controls the splash/window background and
+      the system bar colors before Compose takes over.
+    -->
+    <style name="Theme.SlideshowClock" parent="@android:style/Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@android:color/black</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+    </style>
+</resources>
