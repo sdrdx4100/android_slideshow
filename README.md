@@ -24,6 +24,8 @@ Android 向けの、写真スライドショー＋時計アプリです。端末
   スライドショーに重ねて操作。位置（左下／右下）を選べます。利用には端末の「通知への
   アクセス」を一度有効化する必要があります（通知の内容は読み取らず、再生中メディアの取得・
   操作にのみ使用します）。
+- **スクリーンセーバー（Daydream）** — **充電中／ドック接続中に自動でスライドショーを全画面起動**。
+  端末の「設定 → ディスプレイ → スクリーンセーバー」で本アプリを選んで有効化します。
 - **設定のライブプレビュー** — 変更がその場で反映。横画面では省スペースなコンパクト表示。
 
 ## 操作方法
@@ -74,6 +76,8 @@ app/src/main/java/com/example/slideshowclock/
 │   ├── ImageRepository.kt               # SAF フォルダ内画像の列挙（再帰対応）
 │   ├── MediaNotificationListenerService.kt  # 通知アクセス（メディア操作の解禁用）
 │   └── NowPlayingController.kt          # 再生中メディアの取得・操作
+├── dream/
+│   └── SlideshowDreamService.kt         # スクリーンセーバー（Daydream）
 └── ui/
     ├── theme/                           # ダークな Material 3 テーマ
     ├── clock/Clock.kt                   # デジタル / アナログ時計・日付・配置
