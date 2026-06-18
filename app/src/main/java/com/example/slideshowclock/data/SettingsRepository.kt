@@ -40,6 +40,7 @@ class SettingsRepository(private val context: Context) {
         val dimEnabled = booleanPreferencesKey("dim_enabled")
         val brightness = floatPreferencesKey("brightness")
         val burnInProtection = booleanPreferencesKey("burn_in_protection")
+        val mediaPosition = stringPreferencesKey("media_position")
     }
 
     val settings: Flow<SlideshowSettings> = context.dataStore.data.map { p ->
@@ -63,6 +64,7 @@ class SettingsRepository(private val context: Context) {
             dimEnabled = p[Keys.dimEnabled] ?: defaults.dimEnabled,
             brightness = p[Keys.brightness] ?: defaults.brightness,
             burnInProtection = p[Keys.burnInProtection] ?: defaults.burnInProtection,
+            mediaPosition = p[Keys.mediaPosition].toEnum(defaults.mediaPosition),
         )
     }
 
@@ -126,6 +128,10 @@ class SettingsRepository(private val context: Context) {
 
     suspend fun setBurnInProtection(value: Boolean) = context.dataStore.edit {
         it[Keys.burnInProtection] = value
+    }
+
+    suspend fun setMediaPosition(value: MediaPosition) = context.dataStore.edit {
+        it[Keys.mediaPosition] = value.name
     }
 }
 

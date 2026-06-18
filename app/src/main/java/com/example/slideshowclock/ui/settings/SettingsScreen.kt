@@ -61,6 +61,7 @@ import com.example.slideshowclock.data.ClockColor
 import com.example.slideshowclock.data.ClockFont
 import com.example.slideshowclock.data.ClockPosition
 import com.example.slideshowclock.data.ClockType
+import com.example.slideshowclock.data.MediaPosition
 import com.example.slideshowclock.data.SlideshowSettings
 import com.example.slideshowclock.data.TransitionType
 import com.example.slideshowclock.ui.clock.ClockOverlay
@@ -275,10 +276,6 @@ fun SettingsScreen(
                     checked = settings.showSeconds,
                     onCheckedChange = viewModel::setShowSeconds,
                 )
-            }
-
-            // ----- Date -----
-            SectionCard("日付") {
                 SwitchRow(
                     label = "日付・曜日を表示",
                     checked = settings.showDate,
@@ -328,6 +325,24 @@ fun SettingsScreen(
                 )
                 Text(
                     "時計の位置を少しずつ動かし、有機ELの焼き付きを防ぎます。",
+                    color = TextMid,
+                    fontSize = 12.sp,
+                )
+            }
+
+            // ----- Music -----
+            SectionCard("音楽") {
+                Text("音楽コントロールの位置", color = TextMid, fontSize = 13.sp)
+                Spacer(Modifier.height(8.dp))
+                ChoiceChips(
+                    options = MediaPosition.entries,
+                    selected = settings.mediaPosition,
+                    label = ::mediaPositionLabel,
+                    onSelect = viewModel::setMediaPosition,
+                )
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    "再生中の曲と操作ボタンを表示する位置です。時計と重なるときに変更してください。",
                     color = TextMid,
                     fontSize = 12.sp,
                 )
@@ -564,4 +579,9 @@ private fun clockFontLabel(f: ClockFont): String = when (f) {
     ClockFont.BOLD -> "ボールド"
     ClockFont.SERIF -> "明朝"
     ClockFont.MONO -> "等幅"
+}
+
+private fun mediaPositionLabel(p: MediaPosition): String = when (p) {
+    MediaPosition.BOTTOM_START -> "左下"
+    MediaPosition.BOTTOM_END -> "右下"
 }

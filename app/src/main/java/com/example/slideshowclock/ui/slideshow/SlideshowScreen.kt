@@ -28,6 +28,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -94,6 +95,7 @@ import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
+import com.example.slideshowclock.data.MediaPosition
 import com.example.slideshowclock.data.SlideshowSettings
 import com.example.slideshowclock.data.TransitionType
 import com.example.slideshowclock.ui.clock.ClockOverlay
@@ -109,6 +111,7 @@ fun SlideshowScreen(
     val settings by viewModel.settings.collectAsStateWithLifecycle()
     val images by viewModel.images.collectAsStateWithLifecycle()
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
+    val accessLost by viewModel.accessLost.collectAsStateWithLifecycle()
     val nowPlaying by viewModel.nowPlaying.collectAsStateWithLifecycle()
     val mediaPermission by viewModel.mediaPermission.collectAsStateWithLifecycle()
 
@@ -118,10 +121,12 @@ fun SlideshowScreen(
         ActivityResultContracts.OpenDocumentTree()
     ) { uri: Uri? -> if (uri != null) viewModel.setFolder(uri) }
 
-    // Observe/control the foreground media app while this screen is shown. ON_RESUME
-    // also picks up notification access the moment it's granted in system settings.
+    // Observe/control the foreground media app only while this screen is shown.
+    // ON_RESUME also picks up notification access the moment it's granted in settings;
+    // leaving the screen (onDispose) stops the listener so nothing lingers in Settings.
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
+        viewModel.startNowPlaying()
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
                 Lifecycle.Event.ON_START -> viewModel.startNowPlaying()
@@ -131,12 +136,18 @@ fun SlideshowScreen(
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            viewModel.stopNowPlaying()
+        }
     }
 
-    // Keep the screen awake while the slideshow is showing, if requested.
+    // Keep the screen awake while the slideshow is showing; release it on leave.
     val view = LocalView.current
-    LaunchedEffect(settings.keepScreenOn) { view.keepScreenOn = settings.keepScreenOn }
+    DisposableEffect(settings.keepScreenOn) {
+        view.keepScreenOn = settings.keepScreenOn
+        onDispose { view.keepScreenOn = false }
+    }
 
     // Optional window-level dimming for night / always-on use. Reset to the system
     // default when leaving the slideshow so Settings (same window) stays readable.
@@ -160,13 +171,15 @@ fun SlideshowScreen(
         }
     }
 
-    // Immersive, full-bleed photo-frame experience.
-    LaunchedEffect(Unit) {
-        val window = (view.context as? Activity)?.window ?: return@LaunchedEffect
-        val controller = WindowCompat.getInsetsController(window, view)
-        controller.systemBarsBehavior =
+    // Immersive, full-bleed photo-frame experience — but only on this screen. Restore
+    // the system bars on the way out so Settings (same window) shows them normally.
+    DisposableEffect(Unit) {
+        val window = (view.context as? Activity)?.window
+        val controller = window?.let { WindowCompat.getInsetsController(it, view) }
+        controller?.systemBarsBehavior =
             WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-        controller.hide(WindowInsetsCompat.Type.systemBars())
+        controller?.hide(WindowInsetsCompat.Type.systemBars())
+        onDispose { controller?.show(WindowInsetsCompat.Type.systemBars()) }
     }
 
     Box(
@@ -175,13 +188,37 @@ fun SlideshowScreen(
             .background(Color.Black)
     ) {
         when {
-            settings.folderUri == null || (images.isEmpty() && !isLoading) ->
-                EmptyState(onPickFolder = { folderPicker.launch(null) }, onOpenSettings = onOpenSettings)
+            settings.folderUri == null ->
+                StatusMessage(
+                    title = "写真フォルダを選択",
+                    message = "端末内のフォルダを選ぶと、その中の画像をスライドショー表示します。",
+                    actionLabel = "フォルダを選択",
+                    onAction = { folderPicker.launch(null) },
+                    onOpenSettings = onOpenSettings,
+                )
 
             images.isEmpty() && isLoading ->
                 CircularProgressIndicator(
                     color = Color.White,
                     modifier = Modifier.align(Alignment.Center),
+                )
+
+            accessLost ->
+                StatusMessage(
+                    title = "フォルダにアクセスできません",
+                    message = "アクセス権限が失効しました。もう一度フォルダを選び直してください。",
+                    actionLabel = "フォルダを選び直す",
+                    onAction = { folderPicker.launch(null) },
+                    onOpenSettings = onOpenSettings,
+                )
+
+            images.isEmpty() ->
+                StatusMessage(
+                    title = "画像が見つかりません",
+                    message = "別のフォルダを選ぶか、設定で「サブフォルダも含める」を試してください。",
+                    actionLabel = "フォルダを選択",
+                    onAction = { folderPicker.launch(null) },
+                    onOpenSettings = onOpenSettings,
                 )
 
             else ->
@@ -303,14 +340,16 @@ private fun SlideshowContent(
             )
         }
 
-        // Now-playing + transport at bottom-left. Visible whenever music is playing,
-        // and also surfaced (with the permission prompt) whenever the controls show.
+        // Now-playing + transport, in the bottom corner the user picked (so it can
+        // dodge the clock). Visible whenever music is playing, and also surfaced with
+        // the permission prompt whenever the controls show.
+        val atStart = settings.mediaPosition == MediaPosition.BOTTOM_START
         val nowPlayingVisible = (mediaPermission && nowPlaying != null) || controlsVisible
         AnimatedVisibility(
             visible = nowPlayingVisible,
             enter = fadeIn() + slideInVertically { it },
             exit = fadeOut() + slideOutVertically { it },
-            modifier = Modifier.align(Alignment.BottomStart),
+            modifier = Modifier.align(if (atStart) Alignment.BottomStart else Alignment.BottomEnd),
         ) {
             NowPlayingBar(
                 state = nowPlaying,
@@ -321,7 +360,11 @@ private fun SlideshowContent(
                 onRequestPermission = onRequestMediaPermission,
                 modifier = Modifier
                     .navigationBarsPadding()
-                    .padding(start = 16.dp, bottom = 20.dp),
+                    .padding(
+                        start = if (atStart) 16.dp else 0.dp,
+                        end = if (atStart) 0.dp else 16.dp,
+                        bottom = 20.dp,
+                    ),
             )
         }
     }
@@ -415,9 +458,16 @@ private fun NowPlayingBar(
                         fontWeight = FontWeight.Medium,
                     )
                     Text(
-                        "タップして通知アクセスを許可",
+                        "通知の内容は読みません。再生中の曲の表示と操作だけに使います。",
                         color = Color.White.copy(alpha = 0.7f),
                         fontSize = 12.sp,
+                    )
+                    Spacer(Modifier.height(2.dp))
+                    Text(
+                        "タップして通知アクセスを許可",
+                        color = Color.White.copy(alpha = 0.95f),
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium,
                     )
                 }
             }
@@ -597,30 +647,36 @@ private fun TopControls(
     }
 }
 
+/** Single, reusable full-screen state (unselected / access lost / no images). */
 @Composable
-private fun EmptyState(
-    onPickFolder: () -> Unit,
+private fun StatusMessage(
+    title: String,
+    message: String,
+    actionLabel: String,
+    onAction: () -> Unit,
     onOpenSettings: () -> Unit,
 ) {
     Box(Modifier.fillMaxSize().padding(32.dp), contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
-                text = "写真フォルダを選択してください",
+                text = title,
                 color = Color.White,
                 fontSize = 22.sp,
                 fontWeight = FontWeight.Medium,
+                textAlign = TextAlign.Center,
             )
             Spacer(Modifier.height(12.dp))
             Text(
-                text = "端末内のフォルダを選ぶと、その中の画像を\nスライドショーで表示します。",
+                text = message,
                 color = Color.White.copy(alpha = 0.7f),
                 fontSize = 14.sp,
+                textAlign = TextAlign.Center,
             )
             Spacer(Modifier.height(28.dp))
-            Button(onClick = onPickFolder) { Text("フォルダを選択") }
+            Button(onClick = onAction) { Text(actionLabel) }
             Spacer(Modifier.height(12.dp))
             IconButton(onClick = onOpenSettings) {
-                Icon(Icons.Filled.Settings, contentDescription = null, tint = Color.White)
+                Icon(Icons.Filled.Settings, contentDescription = "設定", tint = Color.White)
             }
         }
     }

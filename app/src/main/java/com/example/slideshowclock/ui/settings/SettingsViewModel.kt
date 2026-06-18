@@ -8,6 +8,7 @@ import com.example.slideshowclock.data.AnalogStyle
 import com.example.slideshowclock.data.ClockColor
 import com.example.slideshowclock.data.ClockFont
 import com.example.slideshowclock.data.ClockPosition
+import com.example.slideshowclock.data.MediaPosition
 import com.example.slideshowclock.data.ClockType
 import com.example.slideshowclock.data.SettingsRepository
 import com.example.slideshowclock.data.SlideshowSettings
@@ -79,4 +80,5 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
     fun setDimEnabled(value: Boolean) = viewModelScope.launch { repo.setDimEnabled(value) }
     fun setBrightness(value: Float) = viewModelScope.launch { repo.setBrightness(value) }
     fun setBurnInProtection(value: Boolean) = viewModelScope.launch { repo.setBurnInProtection(value) }
+    fun setMediaPosition(value: MediaPosition) = viewModelScope.launch { repo.setMediaPosition(value) }
 }

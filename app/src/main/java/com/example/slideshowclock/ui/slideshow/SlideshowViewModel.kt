@@ -37,6 +37,10 @@ class SlideshowViewModel(app: Application) : AndroidViewModel(app) {
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
+    /** True when a folder is chosen but we no longer hold read access to it. */
+    private val _accessLost = MutableStateFlow(false)
+    val accessLost: StateFlow<Boolean> = _accessLost.asStateFlow()
+
     init {
         // Reload images whenever the folder, recursion, or shuffle flag changes.
         viewModelScope.launch {
@@ -49,13 +53,21 @@ class SlideshowViewModel(app: Application) : AndroidViewModel(app) {
 
     private suspend fun loadImages(uriString: String?, shuffle: Boolean, recursive: Boolean) {
         if (uriString == null) {
+            _accessLost.value = false
             _images.value = emptyList()
             return
         }
+        val uri = Uri.parse(uriString)
+        if (!imageRepo.hasPermission(uri)) {
+            // Folder remembered, but the persisted grant is gone (revoked / SD removed).
+            _accessLost.value = true
+            _images.value = emptyList()
+            _isLoading.value = false
+            return
+        }
+        _accessLost.value = false
         _isLoading.value = true
-        val list = runCatching {
-            imageRepo.listImages(Uri.parse(uriString), recursive)
-        }.getOrDefault(emptyList())
+        val list = runCatching { imageRepo.listImages(uri, recursive) }.getOrDefault(emptyList())
         _images.value = if (shuffle) list.shuffled() else list
         _isLoading.value = false
     }

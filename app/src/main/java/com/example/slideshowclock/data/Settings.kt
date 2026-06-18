@@ -15,6 +15,9 @@ enum class ClockFont { MINIMAL, BOLD, SERIF, MONO }
 /** Face design for the analog clock. */
 enum class AnalogStyle { MINIMAL, CLASSIC, MODERN }
 
+/** Corner for the now-playing / transport overlay, so it can dodge the clock. */
+enum class MediaPosition { BOTTOM_START, BOTTOM_END }
+
 /** Tint applied to the clock (digital text / analog hands & accents). */
 enum class ClockColor(val color: Color) {
     WHITE(Color(0xFFFFFFFF)),
@@ -62,6 +65,8 @@ data class SlideshowSettings(
     val dimEnabled: Boolean = false,
     val brightness: Float = 1.0f,
     val burnInProtection: Boolean = false,
+    // Music overlay.
+    val mediaPosition: MediaPosition = MediaPosition.BOTTOM_START,
 ) {
     companion object {
         const val MIN_INTERVAL = 3
